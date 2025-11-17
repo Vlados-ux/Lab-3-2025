@@ -23,6 +23,7 @@ public class LinkedListTabulatedFunction implements TabulatedFunction {
     private FunctionNode currentNode;
     private int currentIndex;
     private int pointsCount;
+    private static final double EPSILON = 1e-10;
 
 
     public LinkedListTabulatedFunction(double leftX, double rightX, int pointsCount) {
@@ -126,7 +127,6 @@ public class LinkedListTabulatedFunction implements TabulatedFunction {
         return nodeToDelete;
     }
 
-    // Реализация методов TabulatedFunction
     public double getLeftDomainBorder() {
         return head.next.point.getX();
     }
@@ -136,16 +136,24 @@ public class LinkedListTabulatedFunction implements TabulatedFunction {
     }
 
     public double getFunctionValue(double x) {
-        if (x < getLeftDomainBorder() || x > getRightDomainBorder()) {
+        if (x < getLeftDomainBorder() -EPSILON || x > getRightDomainBorder() + EPSILON) {
             return Double.NaN;
         }
 
         FunctionNode node = head.next;
+        while (node != head) {
+            if (Math.abs(node.point.getX() - x) < EPSILON) {
+                return node.point.getY();
+            }
+            node = node.next;
+        }
+
+        node = head.next;
         while (node != head && node.next != head) {
             double x1 = node.point.getX();
             double x2 = node.next.point.getX();
 
-            if (x >= x1 && x <= x2) {
+            if (x >= x1 - EPSILON && x <= x2 + EPSILON) {
                 double y1 = node.point.getY();
                 double y2 = node.next.point.getY();
                 return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
@@ -167,8 +175,8 @@ public class LinkedListTabulatedFunction implements TabulatedFunction {
     public void setPoint(int index, FunctionPoint point) throws InappropriateFunctionPointException {
         FunctionNode node = getNodeByIndex(index);
 
-        if ((index > 0 && point.getX() <= node.prev.point.getX()) ||
-                (index < pointsCount-1 && point.getX() >= node.next.point.getX())) {
+        if ((index > 0 && point.getX() <= node.prev.point.getX() + EPSILON) ||
+                (index < pointsCount-1 && point.getX() >= node.next.point.getX() - EPSILON)) {
             throw new InappropriateFunctionPointException("Новая точка нарушает порядок X координат");
         }
 
@@ -182,8 +190,8 @@ public class LinkedListTabulatedFunction implements TabulatedFunction {
     public void setPointX(int index, double x) throws InappropriateFunctionPointException {
         FunctionNode node = getNodeByIndex(index);
 
-        if ((index > 0 && x <= node.prev.point.getX()) ||
-                (index < pointsCount-1 && x >= node.next.point.getX())) {
+        if ((index > 0 && x <= node.prev.point.getX() + EPSILON) ||
+                (index < pointsCount-1 && x >= node.next.point.getX() - EPSILON)) {
             throw new InappropriateFunctionPointException("Новая координата X нарушает порядок точек");
         }
 
@@ -205,7 +213,7 @@ public class LinkedListTabulatedFunction implements TabulatedFunction {
     public void addPoint(FunctionPoint point) throws InappropriateFunctionPointException {
         FunctionNode node = head.next;
         while (node != head) {
-            if (node.point.getX() == point.getX()) {
+            if (Math.abs(node.point.getX() - point.getX()) < EPSILON) {
                 throw new InappropriateFunctionPointException("Точка с X=" + point.getX() + " уже существует");
             }
             node = node.next;
